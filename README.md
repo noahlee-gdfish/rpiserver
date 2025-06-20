@@ -15,3 +15,5 @@
     ```
 
     rpiserver/lib/camlib has symbolic link to ../../cameraserver
+
+2. build.sh is for personal use. Run build_rpiserver.sh to build binary
