@@ -2,11 +2,13 @@
 
 ## Python environment
 
-0. Need to use python virtual environment under ~/.env with the following packages installed
+- Need to use python virtual environment under ~/.env with the following packages installed
 
     Required packages : pyinstaller opencv-python opencv-contrib-python imutils dlib torch
 
-1. cameraserver is required at the same directory as rpiserver
+## Components
+
+- cameraserver is required at the same directory as rpiserver
 
     ```
     |- project_dir
@@ -16,4 +18,4 @@
 
     rpiserver/lib/camlib has symbolic link to ../../cameraserver
 
-2. build.sh is for personal use. Run build_rpiserver.sh to build binary
+- build.sh is for personal use. Run build_rpiserver.sh to build binary
