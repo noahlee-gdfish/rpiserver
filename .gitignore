@@ -1,3 +1,4 @@
+*.swp
 build/
 dist/
 lib/__pycache__/
