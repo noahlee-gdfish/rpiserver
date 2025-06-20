@@ -9,9 +9,9 @@
 1. cameraserver is required at the same directory as rpiserver
 
     ```
-    > - project_dir
-    >> - rpiserver
-    >> - cameraserver
+    |- project_dir
+        |- rpiserver
+        |- cameraserver
     ```
 
     rpiserver/lib/camlib has symbolic link to ../../cameraserver
