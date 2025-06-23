@@ -14,6 +14,10 @@ import logging.config
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont
 import cv2
+import requests
+import numpy as np
+import imutils
+from queue import Queue
 
 if getattr(sys, 'frozen', False):
     from lib import LCD_1inch69, log_conf
@@ -58,6 +62,7 @@ else:
     EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "pic/LCD_ExitImage.jpg")
 
 IMAGE_ROTATE = 180
+STREAM_SERVER_URL = "http://192.168.219.116:8001/stream"
 
 COLOR_BG = "BLACK"
 REFRESH_TIME_SEC = 1
@@ -238,6 +243,7 @@ class SystemMonitor:
         self.lock = threading.Lock()
         self.msglock = threading.Lock()
         self.cameralock = threading.Lock()
+        self.Q = Queue(maxsize=128)
 
         self.clients = 0
 
@@ -541,22 +547,46 @@ class SystemMonitor:
 
     def RunCamera(self, draw):
         self.SetCameraRunning(True)
-        st = streamer.Streamer(width = 240, height = 225, mode = 0, stat = False)
-        st.run()
-
+        start_new_thread(self.GetStream, ())
         while self.GetCameraRunning():
             try:
-                frame = st.getimage()
+                frame = self.Q.get()
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                 image = image.rotate(IMAGE_ROTATE)
                 if not self.GetMsgRunning():
                     self.disp.ShowImage(image)
-            except:
+            except Exception as e:
+                print(f"exception: {e}")
+                logger.error("exception {e}")
                 self.ChangeMode()
                 break
 
-        st.stop()
         self.SetCameraRunning(False) 
+
+    def GetStream(self):
+        logger.info("GetStream start")
+        response=requests.get(STREAM_SERVER_URL, stream=True)
+        response.raise_for_status()
+
+        bytes_data = b''
+        for chunk in response.iter_content(chunk_size=1024):
+            bytes_data += chunk
+            head = bytes_data.find(b'\xff\xd8')
+            end = bytes_data.find(b'\xff\xd9')
+            if head != -1 and end != -1:
+                image_data = bytes_data[head:end+2]
+                bytes_data = bytes_data[end+2:]
+                frame = cv2.imdecode(np.frombuffer(image_data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+                #logger.debug("org frame {0}:{1}".format(frame.shape[1], frame.shape[0]))
+                frame = cv2.resize(frame, (self.disp.width, self.disp.height), interpolation=cv2.INTER_AREA)
+                with self.Q.mutex:
+                    self.Q.queue.clear()
+                self.Q.put(frame)
+
+            if not self.GetCameraRunning():
+                break
+
+        logger.info("GetStream end")
 
     def ShowClients(self, clients):
         msglist = []
