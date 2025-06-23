@@ -291,6 +291,7 @@ class SystemMonitor:
         return mode
 
     def SetMode(self, mode):
+        # Need to exit cameramode due to perf issue
         if mode == eMode.CAMERA.value:
             if self.cameraserver and self.cameraserver.clients > 0:
                 logger.info("Camera is already running")
@@ -539,6 +540,7 @@ class SystemMonitor:
         self.msgtimer.start()
 
     def OpenRemoteCamera(self):
+        # Need to exit cameramode due to perf issue
         if self.GetCameraRunning():
             self.ChangeMode()
 
