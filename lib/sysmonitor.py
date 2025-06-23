@@ -17,6 +17,7 @@ import cv2
 import requests
 import numpy as np
 import imutils
+import queue
 from queue import Queue
 
 if getattr(sys, 'frozen', False):
@@ -550,16 +551,24 @@ class SystemMonitor:
     def RunCamera(self, draw):
         self.SetCameraRunning(True)
         start_new_thread(self.GetStream, ())
+        i = 0
         while self.GetCameraRunning():
             try:
                 frame = self.Q.get()
+
+                # drop every second frame due to perf issue
+                i += 1
+                if i%2 != 0:
+                    continue
+
+                frame = cv2.resize(frame, (self.disp.width, self.disp.height), interpolation=cv2.INTER_AREA)
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                 image = image.rotate(IMAGE_ROTATE)
                 if not self.GetMsgRunning():
                     self.disp.ShowImage(image)
+
             except Exception as e:
-                print(f"exception: {e}")
-                logger.error("exception {e}")
+                logger.error("exception")
                 self.ChangeMode()
                 break
 
@@ -580,7 +589,6 @@ class SystemMonitor:
                 bytes_data = bytes_data[end+2:]
                 frame = cv2.imdecode(np.frombuffer(image_data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
                 #logger.debug("org frame {0}:{1}".format(frame.shape[1], frame.shape[0]))
-                frame = cv2.resize(frame, (self.disp.width, self.disp.height), interpolation=cv2.INTER_AREA)
                 with self.Q.mutex:
                     self.Q.queue.clear()
                 self.Q.put(frame)
