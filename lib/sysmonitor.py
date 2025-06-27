@@ -549,12 +549,19 @@ class SystemMonitor:
         return msg
 
     def RunCamera(self, draw):
+        logger.info("RunCamera start")
         self.SetCameraRunning(True)
-        start_new_thread(self.GetStream, ())
+        connected_evt = threading.Event()
+        start_new_thread(self.GetStream, (connected_evt,))
+
+        connected_evt.wait()
+
         i = 0
         while self.GetCameraRunning():
             try:
                 frame = self.Q.get()
+                #if frame == None:
+                #    continue
 
                 # drop every second frame due to perf issue
                 i += 1
@@ -573,11 +580,22 @@ class SystemMonitor:
                 break
 
         self.SetCameraRunning(False) 
+        logger.info("RunCamera end")
 
-    def GetStream(self):
+    def GetStream(self, connected_evt):
         logger.info("GetStream start")
-        response=requests.get(STREAM_SERVER_URL, stream=True)
-        response.raise_for_status()
+        try:
+            response=requests.get(STREAM_SERVER_URL, stream=True)
+            response.raise_for_status()
+        except requests.exceptions.ConnectionError as e:
+            logger.error("Camera server may not be running")
+            self.SetCameraRunning(False)
+            connected_evt.set()
+            self.ChangeMode()
+            logger.info("GetStream end due to exception")
+            return
+
+        connected_evt.set()
 
         bytes_data = b''
         for chunk in response.iter_content(chunk_size=1024):
@@ -594,6 +612,7 @@ class SystemMonitor:
                 self.Q.put(frame)
 
             if not self.GetCameraRunning():
+                self.Q.put(frame) # to wake up RunCamera thread from Q.get()
                 break
 
         logger.info("GetStream end")
