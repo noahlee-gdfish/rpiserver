@@ -16,8 +16,8 @@ else:
     import sysmonitor, log_conf
 
 GPIO_MODE_BUTTON = 26
-GPIO_CLIENTS_BUTTON = 16
-GPIO_LOGLEVEL_BUTTON = 20
+GPIO_CLIENTS_BUTTON = 6
+GPIO_LOGLEVEL_BUTTON = 16
 
 class GpioMonitor:
     def __init__(self, rpiserver = None, sysmon = None):
