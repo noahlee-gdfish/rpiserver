@@ -63,7 +63,8 @@ else:
     EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "pic/LCD_ExitImage.jpg")
 
 IMAGE_ROTATE = 180
-STREAM_SERVER_URL = "http://192.168.219.116:8001/stream"
+#STREAM_SERVER_URL = "http://192.168.219.116:8001/stream"
+STREAM_SERVER_URL = "http://192.168.219.113:81/stream"
 
 COLOR_BG = "BLACK"
 REFRESH_TIME_SEC = 1
@@ -576,16 +577,17 @@ class SystemMonitor:
 
             except Exception as e:
                 logger.error("exception")
-                self.ChangeMode()
                 break
 
-        self.SetCameraRunning(False) 
+        self.SetCameraRunning(False)
+        if self.GetMode() == eMode.CAMERA.value:
+            self.ChangeMode()
         logger.info("RunCamera end")
 
     def GetStream(self, connected_evt):
         logger.info("GetStream start")
         try:
-            response=requests.get(STREAM_SERVER_URL, stream=True)
+            response=requests.get(STREAM_SERVER_URL, stream=True, timeout=3)
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             logger.error("Camera server may not be running")
@@ -598,11 +600,15 @@ class SystemMonitor:
         connected_evt.set()
 
         bytes_data = b''
-        for chunk in response.iter_content(chunk_size=1024):
+        for chunk in response.iter_content(chunk_size=4096):
             bytes_data += chunk
             head = bytes_data.find(b'\xff\xd8')
             end = bytes_data.find(b'\xff\xd9')
             if head != -1 and end != -1:
+                # skip frame with wrong head
+                if head > end:
+                    bytes_data = bytes_data[end+2:]
+                    continue
                 image_data = bytes_data[head:end+2]
                 bytes_data = bytes_data[end+2:]
                 frame = cv2.imdecode(np.frombuffer(image_data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
@@ -612,9 +618,10 @@ class SystemMonitor:
                 self.Q.put(frame)
 
             if not self.GetCameraRunning():
-                self.Q.put(frame) # to wake up RunCamera thread from Q.get()
                 break
 
+        self.SetCameraRunning(False)
+        self.Q.put("Exit")
         logger.info("GetStream end")
 
     def ShowClients(self, clients):
