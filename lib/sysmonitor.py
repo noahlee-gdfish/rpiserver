@@ -63,6 +63,7 @@ else:
     EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "pic/LCD_ExitImage.jpg")
 
 IMAGE_ROTATE = 180
+ARDUINO_CAMERA_ROTATE = 90
 #STREAM_SERVER_URL = "http://192.168.219.116:8001/stream"
 STREAM_SERVER_URL = "http://192.168.219.113:81/stream"
 
@@ -571,7 +572,7 @@ class SystemMonitor:
 
                 frame = cv2.resize(frame, (self.disp.width, self.disp.height), interpolation=cv2.INTER_AREA)
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                image = image.rotate(IMAGE_ROTATE)
+                image = image.rotate(ARDUINO_CAMERA_ROTATE)
                 if not self.GetMsgRunning():
                     self.disp.ShowImage(image)
 
