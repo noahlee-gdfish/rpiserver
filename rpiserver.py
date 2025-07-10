@@ -12,7 +12,7 @@ from _thread import *
 import logging
 import logging.config
 from queue import Queue
-from lib import sysmonitor, gpiomonitor, log_conf
+from lib import sysmonitor, gpiomonitor, log_conf, conf_parser
 from lib.camlib import cameraserver
 
 #-- Items -----------------------------------------------------#
@@ -63,7 +63,6 @@ SOCKET_COMMAND_ARRAY = [
 
 #-- Constants -------------------------------------------------#
 HOST_IP_ADDR = subprocess.check_output("hostname -I", shell=True, encoding='utf-8').strip(' \n')
-HOST_PORT_NUM = 9999
 DATA_BUF_SIZE = 1024
 
 CHATMSG_QUIT = "<quit>"
@@ -467,9 +466,16 @@ def main(argc, argv):
     logger.info("rpiserver exit")
     rpiserver.Exit()
 
+def get_config():
+    config = conf_parser.get_config("RPISERVER")
+
+    global HOST_PORT_NUM
+    HOST_PORT_NUM = int(config["host_port_num"])
+
 if __name__ == '__main__':
     log_conf.init_logger()
     logger = logging.getLogger("rpiserver")
-    main(len(sys.argv), sys.argv)
+    get_config()
 
+    main(len(sys.argv), sys.argv)
 

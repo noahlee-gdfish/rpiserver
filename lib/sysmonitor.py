@@ -21,12 +21,12 @@ import queue
 from queue import Queue
 
 if getattr(sys, 'frozen', False):
-    from lib import LCD_1inch69, log_conf
+    from lib import LCD_1inch69, log_conf, conf_parser
     from lib.camlib import streamer
 else:
     module_path = os.path.abspath(os.path.dirname(__file__))
     sys.path.insert(0, module_path)
-    import LCD_1inch69, log_conf
+    import LCD_1inch69, log_conf, conf_parser
     from camlib import streamer, cameraserver
 
 #-- Enum ------------------------------------------------------#
@@ -56,16 +56,8 @@ class eMode(enum.Enum):
 #--------------------------------------------------------------#
 
 #-- Constants -------------------------------------------------#
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-if getattr(sys, 'frozen', False):
-    EXIT_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "pic/LCD_ExitImage.jpg")
-else:
-    EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), "pic/LCD_ExitImage.jpg")
-
 IMAGE_ROTATE = 180
 ARDUINO_CAMERA_ROTATE = 90
-#STREAM_SERVER_URL = "http://192.168.219.116:8001/stream"
-STREAM_SERVER_URL = "http://192.168.219.113:81/stream"
 
 COLOR_BG = "BLACK"
 REFRESH_TIME_SEC = 1
@@ -756,11 +748,27 @@ def main(argc, argv):
     logger.info("sysmonitor exit")
     sysmon.Exit()
 
+def get_config():
+    config = conf_parser.get_config("SYSMONITOR")
+
+    global FONT_PATH, EXIT_IMAGE_PATH, STREAM_SERVER_URL
+    FONT_PATH = config["font_path"]
+
+    if getattr(sys, 'frozen', False):
+        EXIT_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), config["exit_image"])
+    else:
+        EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), config["exit_image"])
+
+    STREAM_SERVER_URL = config["stream_server_url"]
+
+
 if __name__ == '__main__':
     log_conf.init_logger()
     logger = logging.getLogger("systemmonitor")
+    get_config()
+
     main(len(sys.argv), sys.argv)
 else:
     logger = logging.getLogger("rpiserver")
-
+    get_config()
 
