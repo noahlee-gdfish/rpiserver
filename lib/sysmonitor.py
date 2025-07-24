@@ -57,7 +57,6 @@ class eMode(enum.Enum):
 
 #-- Constants -------------------------------------------------#
 IMAGE_ROTATE = 180
-ARDUINO_CAMERA_ROTATE = 90
 
 COLOR_BG = "BLACK"
 REFRESH_TIME_SEC = 1
@@ -564,7 +563,7 @@ class SystemMonitor:
 
                 frame = cv2.resize(frame, (self.disp.width, self.disp.height), interpolation=cv2.INTER_AREA)
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                image = image.rotate(ARDUINO_CAMERA_ROTATE)
+                image = image.rotate(CAMERA_ROTATE)
                 if not self.GetMsgRunning():
                     self.disp.ShowImage(image)
 
@@ -751,7 +750,7 @@ def main(argc, argv):
 def get_config():
     config = conf_parser.get_config("SYSMONITOR")
 
-    global FONT_PATH, EXIT_IMAGE_PATH, STREAM_SERVER_URL
+    global FONT_PATH, EXIT_IMAGE_PATH, STREAM_SERVER_URL, CAMERA_ROTATE
     FONT_PATH = config["font_path"]
 
     if getattr(sys, 'frozen', False):
@@ -760,6 +759,7 @@ def get_config():
         EXIT_IMAGE_PATH = os.path.join(os.path.dirname(__file__), config["exit_image"])
 
     STREAM_SERVER_URL = config["stream_server_url"]
+    CAMERA_ROTATE = int(config["camera_rotate"])
 
 
 if __name__ == '__main__':
